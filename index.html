@@ -4,16 +4,159 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة إدارة الأكواد</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  body {font-family:sans-serif;padding:20px;background:#f9f9f9;}
-  h1, h2 {color:#333;}
-  table {width:100%;border-collapse:collapse;margin-bottom:20px;}
-  th, td {border:1px solid #ccc;padding:8px;text-align:center;}
-  th {background:#eee;}
-  button {padding:5px 10px;margin:2px;cursor:pointer;}
-  #adminArea {display:none;}
-  .success {color:green;}
-  .error {color:red;}
+  /* إعدادات عامة */
+  body {
+    font-family: 'Cairo', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f0f4f8;
+    color: #333;
+  }
+
+  h1 {
+    text-align: center;
+    margin: 20px 0;
+    color: #1e3a8a;
+    font-size: 2.2em;
+  }
+
+  h2 {
+    color: #1e40af;
+    margin-top: 30px;
+    border-bottom: 2px solid #1e3a8a;
+    display: inline-block;
+    padding-bottom: 5px;
+  }
+
+  /* منطقة تسجيل الدخول */
+  #adminLogin {
+    background: #fff;
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  }
+
+  #adminLogin label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: 700;
+  }
+
+  #adminLogin input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+  }
+
+  #adminLogin button {
+    width: 100%;
+    margin-top: 15px;
+    padding: 12px;
+    background: #1e40af;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  #adminLogin button:hover {
+    background: #1e3a8a;
+  }
+
+  #loginMsg {
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  /* لوحة الإدارة */
+  #adminArea {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+  }
+
+  #stats {
+    background: #e0f2fe;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    color: #1e40af;
+  }
+
+  #filter30DaysBtn, #logoutBtn {
+    padding: 10px 20px;
+    margin: 10px 5px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+
+  #filter30DaysBtn:hover, #logoutBtn:hover {
+    background: #1e40af;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+  }
+
+  th, td {
+    padding: 12px;
+    text-align: center;
+    font-size: 0.95em;
+  }
+
+  th {
+    background: #1e40af;
+    color: #fff;
+  }
+
+  tbody tr {
+    background: #fff;
+    transition: 0.2s;
+  }
+
+  tbody tr:hover {
+    background: #f0f9ff;
+  }
+
+  tbody td button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #ef4444;
+    color: #fff;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+
+  tbody td button:hover {
+    background: #b91c1c;
+  }
+
+  /* تنسيقات إضافية */
+  .success {color: #16a34a;}
+  .error {color: #dc2626;}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -23,20 +166,19 @@
 
 <h1>لوحة إدارة الأكواد والأجهزة</h1>
 
-<!-- تسجيل دخول الأدمن -->
 <div id="adminLogin">
-  <label>الإيميل: <input type="email" id="adminEmail"></label>
-  <label>كلمة المرور: <input type="password" id="adminPass"></label>
+  <label>الإيميل:</label>
+  <input type="email" id="adminEmail">
+  <label>كلمة المرور:</label>
+  <input type="password" id="adminPass">
   <button id="loginBtn">تسجيل دخول الأدمن</button>
   <div id="loginMsg" class="error"></div>
 </div>
 
 <button id="logoutBtn" style="display:none;">تسجيل خروج</button>
 
-<!-- منطقة الإدارة -->
 <div id="adminArea">
   <div id="stats"></div>
-
   <button id="filter30DaysBtn">فلترة الأكواد 30 يوم</button>
 
   <h2>الأكواد المفعّلة</h2>
@@ -69,6 +211,7 @@
 </div>
 
 <script>
+// ===== Firebase Config =====
 const firebaseConfig = {
   apiKey: "AIzaSyAdz_OsGPL5xEq-J72FCkuQezVMhU_FATo",
   authDomain: "website-83e14.firebaseapp.com",
@@ -101,27 +244,23 @@ let filter30Days = false;
 filter30DaysBtn.onclick = () => {
   filter30Days = !filter30Days;
   filter30DaysBtn.textContent = filter30Days ? 'إلغاء فلترة 30 يوم' : 'فلترة الأكواد 30 يوم';
-  loadActivatedCodesRealtime(); // إعادة تحميل الأكواد بعد تغيير الفلتر
+  loadActivatedCodesRealtime();
 };
 
-// دالة تنسيق التاريخ
 function formatDate(ts){ return ts ? new Date(ts).toLocaleString() : '---'; }
 
-// حذف كود مفعّل
 function deleteActivatedCode(uid){
   if(confirm('هل أنت متأكد من حذف هذا الكود من UID '+uid+'؟')){
     db.ref('approvedStudents/'+uid).remove();
   }
 }
 
-// حذف جهاز محظور
 function deleteBlockedDevice(fp){
   if(confirm('هل تريد حذف الجهاز المحظور '+fp+'؟')){
     db.ref('blockedDevices/'+fp).remove();
   }
 }
 
-// تحميل الأكواد المفعلة لحظياً
 function loadActivatedCodesRealtime(){
   db.ref('approvedStudents').on('value', snap => {
     codesTbody.innerHTML = '';
@@ -130,11 +269,10 @@ function loadActivatedCodesRealtime(){
     snap.forEach(child => {
       const data = child.val();
       const expired = data.expiry && now > data.expiry;
-
-      // فلتر 30 يوم
       const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+
       if(filter30Days && data.activationAt && data.expiry){
-        if(data.expiry - data.activationAt !== thirtyDays) return; // تجاهل الأكواد غير 30 يوم
+        if(data.expiry - data.activationAt !== thirtyDays) return;
       }
 
       if(expired) expiredCount++;
@@ -153,14 +291,12 @@ function loadActivatedCodesRealtime(){
       `;
       codesTbody.appendChild(tr);
 
-      // حذف الأكواد المنتهية تلقائياً
       if(expired) db.ref('approvedStudents/'+child.key).remove();
     });
     statsDiv.innerHTML = `<strong>الإحصائيات:</strong> مفعل: ${activeCount}, تجربة: ${trialCount}, مجاني: ${freeCount}, منتهي: ${expiredCount}`;
   });
 }
 
-// تحميل الأجهزة المحظورة لحظياً
 function loadBlockedDevicesRealtime(){
   db.ref('blockedDevices').on('value', snap => {
     blockedTbody.innerHTML = '';
@@ -178,7 +314,6 @@ function loadBlockedDevicesRealtime(){
   });
 }
 
-// تسجيل دخول الأدمن والتحقق من UID
 loginBtn.onclick = async () => {
   const email = document.getElementById('adminEmail').value.trim();
   const pass = document.getElementById('adminPass').value.trim();
@@ -201,7 +336,6 @@ loginBtn.onclick = async () => {
   }
 }
 
-// تسجيل الخروج
 logoutBtn.addEventListener('click', async () => {
   await auth.signOut();
   location.reload();
