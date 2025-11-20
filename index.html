@@ -5,52 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>لوحة إدارة الأكواد</title>
 <style>
-  body{font-family:sans-serif;padding:20px;background:#f9f9f9;}
-  h1{color:#333;}
-  table{width:100%;border-collapse:collapse;margin-bottom:20px;}
-  th,td{border:1px solid #ccc;padding:8px;text-align:center;}
-  th{background:#eee;}
-  button{padding:5px 10px;margin:2px;cursor:pointer;}
-  .success{color:green;}
-  .error{color:red;}
-  #adminLogin{margin-bottom:20px; padding:15px; background:#eee; border-radius:8px;}
-  #adminArea{display:none;}
+  body {font-family:sans-serif;padding:20px;background:#f9f9f9;}
+  h1, h2 {color:#333;}
+  table {width:100%;border-collapse:collapse;margin-bottom:20px;}
+  th, td {border:1px solid #ccc;padding:8px;text-align:center;}
+  th {background:#eee;}
+  button {padding:5px 10px;margin:2px;cursor:pointer;}
+  #adminArea {display:none;}
+  .success {color:green;}
+  .error {color:red;}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
 <h1>لوحة إدارة الأكواد والأجهزة</h1>
 
-<!-- نموذج تسجيل الدخول -->
+<!-- تسجيل دخول الأدمن -->
 <div id="adminLogin">
-  <h3>🔐 تسجيل دخول الأدمن</h3>
-  <label>الإيميل:</label><br>
-  <input type="email" id="adminEmail"><br>
-  <label>كلمة المرور:</label><br>
-  <input type="password" id="adminPass"><br><br>
-  <button id="loginBtn">تسجيل الدخول</button>
+  <label>الإيميل: <input type="email" id="adminEmail"></label>
+  <label>كلمة المرور: <input type="password" id="adminPass"></label>
+  <button id="loginBtn">تسجيل دخول الأدمن</button>
   <div id="loginMsg" class="error"></div>
 </div>
 
-<!-- لوحة الأدمن -->
+<button id="logoutBtn" style="display:none;">تسجيل خروج</button>
+
+<!-- منطقة الإدارة -->
 <div id="adminArea">
   <div id="stats"></div>
 
   <h2>الأكواد المفعّلة</h2>
   <table id="codesTable">
-    <thead><tr>
-      <th>الكود</th><th>UID</th><th>نوع الاشتراك</th><th>تاريخ التفعيل</th><th>تاريخ الانتهاء</th><th>حذف</th>
-    </tr></thead>
+    <thead>
+      <tr>
+        <th>الكود</th>
+        <th>UID</th>
+        <th>نوع الاشتراك</th>
+        <th>تاريخ التفعيل</th>
+        <th>تاريخ الانتهاء</th>
+        <th>حذف</th>
+      </tr>
+    </thead>
     <tbody></tbody>
   </table>
 
   <h2>الأجهزة المحظورة</h2>
   <table id="blockedTable">
-    <thead><tr>
-      <th>Device Hash</th><th>Reporter UID</th><th>تاريخ الحظر</th><th>حذف</th>
-    </tr></thead>
+    <thead>
+      <tr>
+        <th>Device Hash</th>
+        <th>Reporter UID</th>
+        <th>تاريخ الحظر</th>
+        <th>حذف</th>
+      </tr>
+    </thead>
     <tbody></tbody>
   </table>
 </div>
@@ -66,8 +77,8 @@ const firebaseConfig = {
   appId: "1:994953388464:web:9c244de2a4fdcf8561f675"
 };
 firebase.initializeApp(firebaseConfig);
-const db=firebase.database();
-const auth=firebase.auth();
+const db = firebase.database();
+const auth = firebase.auth();
 
 // قائمة UIDات الأدمن
 const ADMIN_UIDS = ["gI2tAMAFdZfpqj9TspSfWvgu6i33"];
@@ -76,61 +87,44 @@ const adminLoginDiv = document.getElementById('adminLogin');
 const loginBtn = document.getElementById('loginBtn');
 const loginMsg = document.getElementById('loginMsg');
 const adminArea = document.getElementById('adminArea');
+const logoutBtn = document.getElementById('logoutBtn');
 
-loginBtn.onclick = async () => {
-  const email = document.getElementById('adminEmail').value;
-  const pass = document.getElementById('adminPass').value;
-  loginMsg.textContent = '';
-  try{
-    const cred = await auth.signInWithEmailAndPassword(email, pass);
-    const uid = cred.user.uid;
-    if(!ADMIN_UIDS.includes(uid)){
-      loginMsg.textContent = '❌ غير مسموح بالدخول — UID غير مطابق للأدمن';
-      await auth.signOut();
-      return;
-    }
-    adminLoginDiv.style.display='none';
-    adminArea.style.display='block';
-    loadActivatedCodes();
-    loadBlockedDevices();
-  }catch(e){
-    loginMsg.textContent = '❌ خطأ: '+ (e.message||e);
-  }
-}
+const statsDiv = document.getElementById('stats');
+const codesTbody = document.querySelector('#codesTable tbody');
+const blockedTbody = document.querySelector('#blockedTable tbody');
 
 // دالة تنسيق التاريخ
-function formatDate(ts){ return ts?new Date(ts).toLocaleString():'---'; }
+function formatDate(ts){ return ts ? new Date(ts).toLocaleString() : '---'; }
 
 // حذف كود مفعّل
 function deleteActivatedCode(uid){
   if(confirm('هل أنت متأكد من حذف هذا الكود من UID '+uid+'؟')){
-    db.ref('approvedStudents/'+uid).remove().then(()=>loadActivatedCodes());
+    db.ref('approvedStudents/'+uid).remove();
   }
 }
 
 // حذف جهاز محظور
 function deleteBlockedDevice(fp){
   if(confirm('هل تريد حذف الجهاز المحظور '+fp+'؟')){
-    db.ref('blockedDevices/'+fp).remove().then(()=>loadBlockedDevices());
+    db.ref('blockedDevices/'+fp).remove();
   }
 }
 
-// تحميل الأكواد المفعلة
-function loadActivatedCodes(){
-  const tbody=document.querySelector('#codesTable tbody');
-  tbody.innerHTML='';
-  db.ref('approvedStudents').once('value').then(snap=>{
-    let activeCount=0,trialCount=0,freeCount=0,expiredCount=0;
-    const now=Date.now();
-    snap.forEach(child=>{
-      const data=child.val();
-      const tr=document.createElement('tr');
-      const expired=data.expiry && now>data.expiry;
+// تحميل الأكواد المفعلة لحظياً
+function loadActivatedCodesRealtime(){
+  db.ref('approvedStudents').on('value', snap => {
+    codesTbody.innerHTML = '';
+    let activeCount=0, trialCount=0, freeCount=0, expiredCount=0;
+    const now = Date.now();
+    snap.forEach(child => {
+      const data = child.val();
+      const expired = data.expiry && now > data.expiry;
       if(expired) expiredCount++;
       else if(data.type==='trial') trialCount++;
       else if(data.type==='free') freeCount++;
       else activeCount++;
-      tr.innerHTML=`
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
         <td>${data.code||'---'}</td>
         <td>${child.key}</td>
         <td>${data.type||'---'}</td>
@@ -138,40 +132,61 @@ function loadActivatedCodes(){
         <td>${formatDate(data.expiry)}</td>
         <td><button onclick="deleteActivatedCode('${child.key}')">حذف</button></td>
       `;
-      tbody.appendChild(tr);
-      // حذف الأكواد المنتهية تلقائي
+      codesTbody.appendChild(tr);
+      // حذف الأكواد المنتهية تلقائياً
       if(expired) db.ref('approvedStudents/'+child.key).remove();
     });
-    document.getElementById('stats').innerHTML=`<strong>الإحصائيات:</strong> مفعل: ${activeCount}, تجربة: ${trialCount}, مجاني: ${freeCount}, منتهي: ${expiredCount}`;
+    statsDiv.innerHTML = `<strong>الإحصائيات:</strong> مفعل: ${activeCount}, تجربة: ${trialCount}, مجاني: ${freeCount}, منتهي: ${expiredCount}`;
   });
 }
 
-// تحميل الأجهزة المحظورة
-function loadBlockedDevices(){
-  const tbody=document.querySelector('#blockedTable tbody');
-  tbody.innerHTML='';
-  db.ref('blockedDevices').once('value').then(snap=>{
-    snap.forEach(child=>{
-      const data=child.val();
-      const tr=document.createElement('tr');
-      tr.innerHTML=`
+// تحميل الأجهزة المحظورة لحظياً
+function loadBlockedDevicesRealtime(){
+  db.ref('blockedDevices').on('value', snap => {
+    blockedTbody.innerHTML = '';
+    snap.forEach(child => {
+      const data = child.val();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
         <td>${child.key}</td>
         <td>${data.reporterUid||'---'}</td>
         <td>${formatDate(data.blockedAt)}</td>
         <td><button onclick="deleteBlockedDevice('${child.key}')">حذف</button></td>
       `;
-      tbody.appendChild(tr);
+      blockedTbody.appendChild(tr);
     });
   });
 }
 
-// تحديث كل شيء كل 5 ثواني
-setInterval(()=>{
-  if(adminArea.style.display==='block'){ // فقط للأدمن
-    loadActivatedCodes();
-    loadBlockedDevices();
+// تسجيل دخول الأدمن والتحقق من UID
+loginBtn.onclick = async () => {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPass').value.trim();
+  loginMsg.textContent = '';
+  try {
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    const uid = cred.user.uid;
+    if(!ADMIN_UIDS.includes(uid)){
+      loginMsg.textContent = '❌ غير مسموح بالدخول — UID غير مطابق للأدمن';
+      await auth.signOut();
+      return;
+    }
+    adminLoginDiv.style.display = 'none';
+    adminArea.style.display = 'block';
+    logoutBtn.style.display = 'inline-block';
+    loadActivatedCodesRealtime();
+    loadBlockedDevicesRealtime();
+  } catch(e) {
+    loginMsg.textContent = '❌ خطأ: ' + (e.message||e);
   }
-},5000);
+}
+
+// تسجيل الخروج
+logoutBtn.addEventListener('click', async () => {
+  await auth.signOut();
+  location.reload();
+});
 </script>
+
 </body>
 </html>
