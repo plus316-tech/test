@@ -37,6 +37,8 @@
 <div id="adminArea">
   <div id="stats"></div>
 
+  <button id="filter30DaysBtn">فلترة الأكواد 30 يوم</button>
+
   <h2>الأكواد المفعّلة</h2>
   <table id="codesTable">
     <thead>
@@ -93,6 +95,15 @@ const statsDiv = document.getElementById('stats');
 const codesTbody = document.querySelector('#codesTable tbody');
 const blockedTbody = document.querySelector('#blockedTable tbody');
 
+const filter30DaysBtn = document.getElementById('filter30DaysBtn');
+let filter30Days = false;
+
+filter30DaysBtn.onclick = () => {
+  filter30Days = !filter30Days;
+  filter30DaysBtn.textContent = filter30Days ? 'إلغاء فلترة 30 يوم' : 'فلترة الأكواد 30 يوم';
+  loadActivatedCodesRealtime(); // إعادة تحميل الأكواد بعد تغيير الفلتر
+};
+
 // دالة تنسيق التاريخ
 function formatDate(ts){ return ts ? new Date(ts).toLocaleString() : '---'; }
 
@@ -119,10 +130,18 @@ function loadActivatedCodesRealtime(){
     snap.forEach(child => {
       const data = child.val();
       const expired = data.expiry && now > data.expiry;
+
+      // فلتر 30 يوم
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      if(filter30Days && data.activationAt && data.expiry){
+        if(data.expiry - data.activationAt !== thirtyDays) return; // تجاهل الأكواد غير 30 يوم
+      }
+
       if(expired) expiredCount++;
       else if(data.type==='trial') trialCount++;
       else if(data.type==='free') freeCount++;
       else activeCount++;
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${data.code||'---'}</td>
@@ -133,6 +152,7 @@ function loadActivatedCodesRealtime(){
         <td><button onclick="deleteActivatedCode('${child.key}')">حذف</button></td>
       `;
       codesTbody.appendChild(tr);
+
       // حذف الأكواد المنتهية تلقائياً
       if(expired) db.ref('approvedStudents/'+child.key).remove();
     });
